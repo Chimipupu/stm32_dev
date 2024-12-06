@@ -12,7 +12,7 @@
 #ifndef MCU_BOARD_HPP
 #define MCU_BOARD_HPP
 
-// #define __BLUE_PILL__          // BluePill
+#define __BLUE_PILL__          // BluePill
 // #define __BLACK_PILL__         // BlackPill
 
 #if defined(__BLUE_PILL__)

@@ -18,7 +18,7 @@ static uint8_t s_led_val = 1;
 
 void buttonISR(void)
 {
-    s_led_val = !s_led_val;
+    // s_led_val = !s_led_val;
 }
 
 void vTaskButton(void *p_parameter)
@@ -39,6 +39,7 @@ void vTaskMain(void *p_parameter)
         Serial.printf("vTaskMain\n");
         Serial.printf("Serial & LED Test(val = %d)\n", s_led_val);
         digitalWrite(OB_LED_PIN, s_led_val);
+        s_led_val = !s_led_val;
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

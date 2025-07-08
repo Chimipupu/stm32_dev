@@ -131,5 +131,7 @@ void app_main(void)
         Serial.printf("Serial & LED Test(val = %d)\n", s_led_val);
         digitalWrite(OB_LED_D2_PIN, s_led_val);
         s_led_val = !s_led_val;
+        s_btn_k1.button_pressed = 0;
+        s_btn_k2.button_pressed = 0;
     }
 }

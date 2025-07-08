@@ -11,6 +11,7 @@
 
 #include "mcu_board.hpp"
 #include "app_freertos.hpp"
+#include "app_main.hpp"
 
 extern void btn_k1_ISR(void);
 extern void btn_k2_ISR(void);
@@ -18,9 +19,7 @@ extern void btn_k2_ISR(void);
 void setup(void)
 {
     // GPIO 初期化
-    pinMode(OB_LED_D2_PIN, OUTPUT);
-    pinMode(OB_BTN_K1_PIN, INPUT_PULLUP);
-    pinMode(OB_BTN_K2_PIN, INPUT_PULLUP);
+    app_btn_init();
     attachInterrupt(OB_BTN_K1_PIN, btn_k1_ISR, CHANGE);
     attachInterrupt(OB_BTN_K2_PIN, btn_k2_ISR, CHANGE);
 

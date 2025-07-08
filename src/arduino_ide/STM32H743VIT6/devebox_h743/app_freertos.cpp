@@ -15,8 +15,20 @@
 static xTaskHandle s_xTaskButton;
 static xTaskHandle s_xTaskMain;
 static uint8_t s_led_val = 1;
-static uint8_t s_btn_k1_flg = 0;
-static uint8_t s_btn_k2_flg = 0;
+
+// デバウンス時間（ミリ秒）
+#define DEBOUNCE_TIME_MS 50
+
+// デバウンス用の構造体
+typedef struct {
+    uint8_t interrupt_flag;       // 割り込みフラグ
+    uint8_t button_pressed;       // ボタン押下状態
+    uint32_t last_interrupt_time; // 最後の割り込み時刻
+    uint8_t pin_number;           // ピン番号
+} button_state_t;
+
+static button_state_t s_btn_k1 = {0, 0, 0, OB_BTN_K1_PIN};
+static button_state_t s_btn_k2 = {0, 0, 0, OB_BTN_K2_PIN};
 
 /**
  * @brief ボタンK1の割り込みハンドラ
@@ -24,7 +36,13 @@ static uint8_t s_btn_k2_flg = 0;
  */
 void btn_k1_ISR(void)
 {
-    s_btn_k1_flg = 1;
+    uint32_t current_time = xTaskGetTickCountFromISR() * portTICK_PERIOD_MS;
+
+    // 前回の割り込みから十分な時間が経過した場合のみフラグを立てる
+    if (current_time - s_btn_k1.last_interrupt_time > DEBOUNCE_TIME_MS) {
+        s_btn_k1.interrupt_flag = 1;
+        s_btn_k1.last_interrupt_time = current_time;
+    }
 }
 
 /**
@@ -33,7 +51,46 @@ void btn_k1_ISR(void)
  */
 void btn_k2_ISR(void)
 {
-    s_btn_k2_flg = 1;
+    uint32_t current_time = xTaskGetTickCountFromISR() * portTICK_PERIOD_MS;
+
+    // 前回の割り込みから十分な時間が経過した場合のみフラグを立てる
+    if (current_time - s_btn_k2.last_interrupt_time > DEBOUNCE_TIME_MS) {
+        s_btn_k2.interrupt_flag = 1;
+        s_btn_k2.last_interrupt_time = current_time;
+    }
+}
+
+/**
+ * @brief ボタンのチャタリング対策のデバウンス
+ * 
+ * @param p_btn_state ボタン状態の構造体ポインタ
+ * @return true ボタンが押された（立ち上がりエッジ）
+ * @return false ボタンが押されていない、または既に処理済み
+ */
+bool debounce_button(button_state_t *p_btn_state)
+{
+    uint8_t current_pin_state = 0;
+
+    if (p_btn_state->interrupt_flag == 0) {
+        return false;
+    }
+
+    // 割り込みフラグをクリア
+    p_btn_state->interrupt_flag = 0;
+
+    // 現在のピン状態を読み取り
+    current_pin_state = digitalRead(p_btn_state->pin_number);
+
+    // ボタンが押された状態（LOW）で、前回が押されていない場合
+    if (current_pin_state == LOW && p_btn_state->button_pressed == 0) {
+        p_btn_state->button_pressed = 1;
+        return true;  // 立ち上がりエッジを検出
+    // ボタンが離された状態（HIGH）の場合
+    } else if (current_pin_state == HIGH && p_btn_state->button_pressed == 1) {
+        p_btn_state->button_pressed = 0;
+    }
+
+    return false;
 }
 
 /**
@@ -45,14 +102,17 @@ void vTaskButton(void *p_parameter)
 {
     while (1)
     {
-        if (s_btn_k1_flg != 0) {
-            Serial.printf("vTaskButton ... Btn K1 = %d\n", s_btn_k1_flg);
-            s_btn_k1_flg = 0;
-        } else if (s_btn_k2_flg != 0) {
-            Serial.printf("vTaskButton ... Btn K2 = %d\n", s_btn_k2_flg);
-            s_btn_k2_flg = 0;
+        // K1ボタンのデバウンス処理
+        if (debounce_button(&s_btn_k1)) {
+            Serial.printf("vTaskButton ... Btn K1 pressed\n");
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+
+        // K2ボタンのデバウンス処理
+        if (debounce_button(&s_btn_k2)) {
+            Serial.printf("vTaskButton ... Btn K2 pressed\n");
+        }
+
+        vTaskDelay(10 / portTICK_PERIOD_MS);  // より細かいポーリング
     }
 }
 
@@ -65,7 +125,8 @@ void vTaskMain(void *p_parameter)
 {
     while (1)
     {
-        if ((s_btn_k1_flg != 0) || (s_btn_k2_flg != 0)) {
+        // ボタンが押されている状態をチェック
+        if (s_btn_k1.button_pressed || s_btn_k2.button_pressed) {
             Serial.printf("vTaskMain\n");
             Serial.printf("Serial & LED Test(val = %d)\n", s_led_val);
             digitalWrite(OB_LED_D2_PIN, s_led_val);

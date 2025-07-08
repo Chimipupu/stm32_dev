@@ -1,11 +1,11 @@
 /**
  * @file devebox_h743.ino
- * @author ちみ/Chimi(https://github.com/Chimipupu)
+ * @author Chimipupu(https://github.com/Chimipupu)
  * @brief BluePill (Flash:128KB)のinoファイル
  * @version 0.1
- * @date 2024-12-7
+ * @date 2025-7-8
  * 
- * @copyright Copyright (c) 2024 ちみ/Chimi(https://github.com/Chimipupu)
+ * @copyright Copyright (c) 2024,2025 Chimipupu(https://github.com/Chimipupu)
  * 
  */
 
